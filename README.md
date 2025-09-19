@@ -1,5 +1,7 @@
 # 🧠 SGR Deep Research - Open-Source Schema-Guided Reasoning System
 
+Production-ready open-source system for automated research using Schema-Guided Reasoning (SGR).
+
 Web Interface Video
 
 https://github.com/user-attachments/assets/9e1c46c0-0c13-45dd-8b35-a3198f946451
@@ -8,7 +10,7 @@ Terminal CLI Video
 
 https://github.com/user-attachments/assets/a5e34116-7853-43c2-ba93-2db811b8584a
 
-Production-ready open-source system for automated research using Schema-Guided Reasoning (SGR). Features real-time streaming responses, OpenAI-compatible API, and comprehensive research capabilities with agent interruption support.
+Features interactive Web UI, OpenAI-compatible API with real-time streaming responses and comprehensive research capabilities with agent interruption support.
 
 ## 📊 Summary Table of Agents
 
@@ -37,6 +39,12 @@ This project is built by the community with pure enthusiasm as an open-source in
 
 ### Prerequisites
 
+- Python 3.11+ (recommended 3.13+)
+- Docker and Docker Compose (optional, for containerized API)
+- Tavily API key (web search)
+- OpenAI API key (default LLM backend; can be proxied via LiteLLM/vLLM)
+
+### Install UV
 First, install UV (modern Python package manager):
 
 ```bash
@@ -46,37 +54,66 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-### Local Development
+### Project Setup
+
+Clone the repo and create a runtime config from the example.
 
 ```bash
-# 1. Setup configuration
 cp config.yaml.example config.yaml
-# Edit config.yaml with your API keys
-
-# 2. Change to src directory and install dependencies
-uv sync
-
-# 3. Run the server
-uv run python sgr_deep_research
 ```
 
-### Docker Deployment
+### Configure API Keys
+
+Edit `config.yaml` with your API keys:
+
+```yaml
+openai:
+  api_key: "YOUR_OPENAI_API_KEY"
+  ...
+
+tavily:
+  api_key: "YOUR_TAVILY_API_KEY"
+  ...
+```
+
+### Install Dependencies
 
 ```bash
-# 1. Setup configuration
-cp config.yaml.example config.yaml
-# Edit config.yaml with your API keys
+uv sync
+```
 
-# 2. Go to the services folder
-cd services
+## Run the Web UI
 
-# 3. Building docker images
-docker-compose build
+https://github.com/user-attachments/assets/85335b84-1d15-482b-a699-42c88604d3f5
 
-# 4. Deploy with Docker Compose
+The project ships with a Chainlit‑based UI for interactive research.
+
+```bash
+chainlit run sgr_deep_research/gui_app.py
+```
+
+Open URL: http://localhost:8000 (Chainlit default, your terminal shows the exact port)
+
+## Run the API Server
+
+Choose either local Python execution or Docker Compose.
+
+### Local (Python)
+
+```bash
+uv run python sgr_deep_research --host 127.0.0.1 --port 8010
+```
+
+### Docker Compose
+
+```bash
+# from repo root (where docker-compose.yml lives)
 docker-compose up -d
+```
 
-# 3. Check health
+### Health Check
+
+```bash
 curl http://localhost:8010/health
 ```
 
