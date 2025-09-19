@@ -25,6 +25,10 @@ scraping:
   enabled: false                       # Enable full text scraping of found pages
   max_pages: 5                         # Maximum pages to scrape per search
   content_limit: 1500                  # Character limit for full content per source
+  timeout: 10                          # Timeout in seconds for each page scraping
+  retry_attempts: 2                    # Number of retry attempts for failed scraping
+  fallback_to_snippets: true           # Use search snippets if scraping fails
+  parallel_scraping: true              # Enable parallel scraping for better performance
 
 # Execution Settings
 execution:

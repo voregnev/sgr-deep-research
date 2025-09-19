@@ -106,6 +106,7 @@ class WebSearchTool(BaseTool):
         sources = self._search_service.search(
             query=self.query,
             max_results=self.max_results,
+            include_raw_content=config.scraping.enabled,
         )
 
         sources = TavilySearchService.rearrange_sources(sources, starting_number=len(context.sources) + 1)

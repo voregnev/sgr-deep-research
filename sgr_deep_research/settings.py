@@ -41,6 +41,10 @@ class ScrapingConfig(BaseModel):
     enabled: bool = Field(default=False, description="Enable full text scraping")
     max_pages: int = Field(default=5, gt=0, description="Maximum pages to scrape")
     content_limit: int = Field(default=1500, gt=0, description="Content character limit per source")
+    timeout: int = Field(default=10, gt=0, description="Timeout in seconds for each page scraping")
+    retry_attempts: int = Field(default=2, ge=0, description="Number of retry attempts for failed scraping")
+    fallback_to_snippets: bool = Field(default=True, description="Use search snippets if scraping fails")
+    parallel_scraping: bool = Field(default=True, description="Enable parallel scraping for better performance")
 
 
 class PromptsConfig(BaseModel):

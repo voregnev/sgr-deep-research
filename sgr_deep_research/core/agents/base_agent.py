@@ -134,6 +134,7 @@ class BaseAgent:
             sources=list(self._context.sources.values()),
             available_tools=self.toolkit,
         )
+        logger.info(f"System prompt: {system_prompt[:500]}...")
         return [{"role": "system", "content": system_prompt}, *self.conversation]
 
     async def _prepare_tools(self) -> list[ChatCompletionFunctionToolParam]:

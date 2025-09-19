@@ -43,7 +43,7 @@ async def get_agent_state(agent_id: str):
     return AgentStateResponse(
         agent_id=agent.id,
         task=agent.task,
-        state=agent.state.value,
+        state=agent._context.state.value,
         searches_used=agent._context.searches_used,
         clarifications_used=agent._context.clarifications_used,
         sources_count=len(agent._context.sources),
@@ -54,7 +54,7 @@ async def get_agent_state(agent_id: str):
 @app.get("/agents", response_model=AgentListResponse)
 async def get_agents_list():
     agents_list = [
-        AgentListItem(agent_id=agent.id, task=agent.task, state=agent.state.value) for agent in agents_storage.values()
+        AgentListItem(agent_id=agent.id, task=agent.task, state=agent._context.state.value) for agent in agents_storage.values()
     ]
 
     return AgentListResponse(agents=agents_list, total=len(agents_list))
