@@ -11,6 +11,7 @@ WORKDIR /app
 COPY sgr_deep_research ./sgr_deep_research
 COPY pyproject.toml ./
 COPY README.md ./
+COPY .chainlit ./.chainlit
 
 # Create virtual environment and install the package
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -37,8 +38,20 @@ COPY --from=builder --chown=appuser:appgroup /opt/venv /opt/venv
 COPY --from=builder --chown=appuser:appgroup /app/sgr_deep_research /app/sgr_deep_research
 COPY --from=builder --chown=appuser:appgroup /app/pyproject.toml /app/
 COPY --from=builder --chown=appuser:appgroup /app/README.md /app/
+COPY --from=builder --chown=appuser:appgroup /app/.chainlit /app/.chainlit
 
 WORKDIR /app
 USER appuser:appgroup
 
-ENTRYPOINT ["python3", "sgr_deep_research"]
+# Create reports directory
+RUN mkdir -p /app/reports
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Run Chainlit application
+CMD ["chainlit", "run", "sgr_deep_research/gui_app.py", "--host", "0.0.0.0", "--port", "8000"]

@@ -55,12 +55,16 @@ class SGRToolCallingResearchAgent(SGRResearchAgent):
     async def _prepare_tools(self) -> list[ChatCompletionFunctionToolParam]:
         """Prepare available tools for current agent state and progress."""
         tools = set(self.toolkit)
+        
+        # Always include ReasoningTool for reasoning phase
+        tools.add(ReasoningTool)
+        
         if self._context.iteration >= self.max_iterations:
-            tools = [
+            tools = {
                 ReasoningTool,
                 CreateReportTool,
                 AgentCompletionTool,
-            ]
+            }
         if self._context.clarifications_used >= self.max_clarifications:
             tools -= {
                 ClarificationTool,
@@ -85,9 +89,15 @@ class SGRToolCallingResearchAgent(SGRResearchAgent):
                 if event.type == "chunk":
                     content = event.chunk.choices[0].delta.content
                     self.streaming_generator.add_chunk(content)
-            reasoning: ReasoningTool = (  # noqa
-                (await stream.get_final_completion()).choices[0].message.tool_calls[0].function.parsed_arguments  #
-            )
+            final_completion = await stream.get_final_completion()
+            if not final_completion.choices[0].message.tool_calls:
+                raise ValueError("Model did not return a tool call for reasoning phase")
+            
+            reasoning: ReasoningTool = final_completion.choices[0].message.tool_calls[0].function.parsed_arguments
+            
+            if reasoning is None:
+                raise ValueError("Failed to parse reasoning tool arguments")
+                
         self.conversation.append(
             {
                 "role": "assistant",

@@ -41,7 +41,7 @@ class ClarificationTool(BaseTool):
     reasoning: str = Field(description="Why clarification is needed")
     unclear_terms: list[str] = Field(description="List of unclear terms or concepts", min_length=1, max_length=5)
     assumptions: list[str] = Field(description="Possible interpretations to verify", min_length=2, max_length=4)
-    questions: list[str] = Field(description="3-5 specific clarifying questions", min_length=3, max_length=5)
+    questions: list[str] = Field(description="1-5 specific clarifying questions", min_length=1, max_length=5)
 
     def __call__(self, context: ResearchContext) -> str:
         return "\n".join(self.questions)
@@ -92,6 +92,8 @@ class AgentCompletionTool(BaseTool):
     reasoning: str = Field(description="Why task is now complete")
     completed_steps: list[str] = Field(description="Summary of completed steps", min_length=1, max_length=5)
     status: Literal[AgentStatesEnum.COMPLETED, AgentStatesEnum.FAILED] = Field(description="Task completion status")
+    answer: str = Field(default="", description="Final answer or summary of research findings")
+    sources: str = Field(default="", description="Sources used in the research")
 
     def __call__(self, context: ResearchContext) -> str:
         context.state = self.status
@@ -105,7 +107,7 @@ class ReasoningTool(BaseTool):
 
     # Reasoning chain - step-by-step thinking process (helps stabilize model)
     reasoning_steps: list[str] = Field(
-        description="Step-by-step reasoning process leading to decision", min_length=2, max_length=4
+        description="Step-by-step reasoning process leading to decision", min_length=2, max_length=6
     )
 
     # Reasoning and state assessment
@@ -117,7 +119,7 @@ class ReasoningTool(BaseTool):
     )
 
     # Next step planning
-    remaining_steps: list[str] = Field(description="1-3 remaining steps to complete task", min_length=1, max_length=3)
+    remaining_steps: list[str] = Field(default_factory=list, description="0-3 remaining steps to complete task", min_length=0, max_length=3)
     task_completed: bool = Field(description="Is the research task finished?")
 
     def __call__(self, *args, **kwargs):

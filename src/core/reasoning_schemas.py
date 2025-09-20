@@ -97,7 +97,7 @@ class NextStep(BaseModel):
     )
 
     # Next step planning
-    remaining_steps: list[str] = Field(description="1-3 remaining steps to complete task", min_length=1, max_length=3)
+    remaining_steps: list[str] = Field(default_factory=list, description="0-3 remaining steps to complete task", min_length=0, max_length=3)
     task_completed: bool = Field(description="Is the research task finished?")
 
     # Tool routing with clarification-first bias

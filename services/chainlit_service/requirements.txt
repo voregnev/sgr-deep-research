@@ -1,0 +1,2 @@
+# This file is now optional - dependencies are managed via pyproject.toml
+# Only add here if you need additional dependencies specific to Chainlit service

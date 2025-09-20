@@ -76,6 +76,60 @@ class CreateReportTool(BaseTool):
         return json.dumps(report, indent=2, ensure_ascii=False)
 
 
+class FinalReportTool(BaseTool):
+    """Present final report content in GUI format for user display."""
+
+    reasoning: str = Field(description="Why presenting final report now")
+    report_filepath: str = Field(description="Path to the generated report file")
+    report_title: str = Field(description="Title of the report")
+    report_summary: str = Field(description="Brief summary of the report content")
+
+    def __call__(self, context: ResearchContext) -> str:
+        try:
+            # Read the report file
+            if os.path.exists(self.report_filepath):
+                with open(self.report_filepath, "r", encoding="utf-8") as f:
+                    report_content = f.read()
+                
+                # Create final report data for GUI
+                final_report = {
+                    "title": self.report_title,
+                    "content": report_content,
+                    "summary": self.report_summary,
+                    "filepath": self.report_filepath,
+                    "sources_count": len(context.sources),
+                    "searches_count": len(context.searches),
+                    "timestamp": datetime.now().isoformat(),
+                    "type": "final_report"
+                }
+                
+                logger.info(
+                    f"📋 FINAL REPORT PRESENTATION:\n"
+                    f"   📄 Title: '{self.report_title}'\n"
+                    f"   📁 File: {self.report_filepath}\n"
+                    f"   📊 Content length: {len(report_content)} chars\n"
+                    f"   📚 Sources: {len(context.sources)}\n"
+                    f"   🔍 Searches: {len(context.searches)}\n"
+                )
+                
+                return json.dumps(final_report, indent=2, ensure_ascii=False)
+            else:
+                error_msg = f"Report file not found: {self.report_filepath}"
+                logger.error(f"❌ {error_msg}")
+                return json.dumps({
+                    "error": error_msg,
+                    "type": "error"
+                }, indent=2, ensure_ascii=False)
+                
+        except Exception as e:
+            error_msg = f"Error reading report file: {str(e)}"
+            logger.error(f"❌ {error_msg}")
+            return json.dumps({
+                "error": error_msg,
+                "type": "error"
+            }, indent=2, ensure_ascii=False)
+
+
 class WebSearchTool(BaseTool):
     """Gather information.
 
@@ -88,7 +142,11 @@ class WebSearchTool(BaseTool):
 
     reasoning: str = Field(description="Why this search is needed and what to expect")
     query: str = Field(description="Search query in same language as user request")
-    max_results: int = Field(default=10, description="Maximum results", ge=1, le=10)
+    max_results: int = Field(default=10, description="Maximum results", ge=1, le=15)
+    plan_adapted: bool = Field(
+        default=False,
+        description="Is this search after plan adaptation?",
+    )
     scrape_content: bool = Field(
         default=False,
         description="Fetch full page content for deeper analysis",
@@ -106,7 +164,7 @@ class WebSearchTool(BaseTool):
         sources = self._search_service.search(
             query=self.query,
             max_results=self.max_results,
-            include_raw_content=config.scraping.enabled,
+            include_raw_content=self.scrape_content or config.scraping.enabled,
         )
 
         sources = TavilySearchService.rearrange_sources(sources, starting_number=len(context.sources) + 1)
@@ -146,4 +204,5 @@ class WebSearchTool(BaseTool):
 research_agent_tools = [
     WebSearchTool,
     CreateReportTool,
+    FinalReportTool,
 ]

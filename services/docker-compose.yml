@@ -1,9 +1,9 @@
 services:
-  sgr:
+  sgr-api:
     build:
-      context: ./api_service
-      dockerfile: Dockerfile
-    container_name: sgr-deep-research
+      context: ..
+      dockerfile: services/api_service/Dockerfile
+    container_name: sgr-deep-research-api
     restart: unless-stopped
 
     ports:
@@ -16,6 +16,29 @@ services:
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8010/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  sgr-chainlit:
+    build:
+      context: ..
+      dockerfile: services/chainlit_service/Dockerfile
+    container_name: sgr-deep-research-chainlit
+    restart: unless-stopped
+
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../config.yaml:/app/config.yaml:ro
+      -  ./reports:/app/reports
+
+    depends_on:
+      - sgr-api
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3

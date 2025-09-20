@@ -11,6 +11,7 @@ from sgr_deep_research.core.tools.base import (
 )
 from sgr_deep_research.core.tools.research import (
     CreateReportTool,
+    FinalReportTool,
     WebSearchTool,
     research_agent_tools,
 )
@@ -23,6 +24,7 @@ __all__ = [
     "WebSearchTool",
     "AdaptPlanTool",
     "CreateReportTool",
+    "FinalReportTool",
     "AgentCompletionTool",
     "ReasoningTool",
     "NextStepToolStub",

@@ -60,6 +60,11 @@ class ResearchContext(BaseModel):
     clarification_received: asyncio.Event = Field(
         default_factory=asyncio.Event, description="Event for clarification synchronization"
     )
+    pending_clarification_questions: str = Field(default="", description="Questions from ClarificationTool waiting for user response")
+    
+    # Report-related fields
+    report_filepath: str = Field(default="", description="Path to the generated report file")
+    report_title: str = Field(default="", description="Title of the generated report")
 
     # ToDO: rename, my creativity finished now
     def agent_state(self) -> dict:

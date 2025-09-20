@@ -66,6 +66,7 @@ class BaseAgent:
         self._context.clarifications_used += 1
         self._context.clarification_received.set()
         self._context.state = AgentStatesEnum.RESEARCHING
+        self._context.pending_clarification_questions = ""  # Clear pending questions
         logger.info(f"✅ Clarification received: {clarifications[:2000]}...")
 
     def _log_reasoning(self, result: ReasoningTool) -> None:
@@ -185,14 +186,23 @@ class BaseAgent:
                     logger.info("\n⏸️  Research paused - please answer questions")
                     logger.info(action_result)
                     self._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
+                    self._context.pending_clarification_questions = action_result
+                    logger.info(f"🔍 DEBUG: Saved questions to pending_clarification_questions: '{action_result}'")
+                    logger.info(f"🔍 DEBUG: Questions length: {len(action_result)}")
                     self._context.clarification_received.clear()
                     await self._context.clarification_received.wait()
                     continue
 
         except Exception as e:
             logger.error(f"❌ Agent execution error: {str(e)}")
-            self._context.state = AgentStatesEnum.FAILED
+            logger.error(f"❌ Error type: {type(e).__name__}")
+            logger.error(f"❌ Agent ID: {self.id}")
+            logger.error(f"❌ Current iteration: {self._context.iteration}")
+            logger.error(f"❌ Current state: {self._context.state}")
+            logger.error(f"❌ Task: {self.task}")
+            logger.error(f"❌ Full traceback:")
             traceback.print_exc()
+            self._context.state = AgentStatesEnum.FAILED
         finally:
             if self.streaming_generator is not None:
                 self.streaming_generator.finish()
