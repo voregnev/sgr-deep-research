@@ -9,6 +9,7 @@ from sgr_deep_research.tools import (
     AgentCompletionTool,
     ClarificationTool,
     CreateReportTool,
+    GeneratePlanTool,
     NextStepToolsBuilder,
     NextStepToolStub,
     ReasoningTool,
@@ -53,6 +54,11 @@ class SGRResearchAgent(BaseAgent):
     async def _prepare_tools(self) -> Type[NextStepToolStub]:
         """Prepare tool classes with current context limits."""
         tools = set(self.toolkit)
+        
+        # Remove GeneratePlanTool after first iteration to prevent loops
+        if self._context.iteration > 1:
+            tools -= {GeneratePlanTool}
+            
         if self._context.iteration >= self.max_iterations:
             tools = {
                 CreateReportTool,
@@ -69,27 +75,70 @@ class SGRResearchAgent(BaseAgent):
         return NextStepToolsBuilder.build_NextStepTools(list(tools))
 
     async def _reasoning_phase(self) -> NextStepToolStub:
-        async with self.openai_client.chat.completions.stream(
-            model=config.openai.model,
-            response_format=await self._prepare_tools(),
-            messages=await self._prepare_context(),
-            max_tokens=config.openai.max_tokens,
-            temperature=config.openai.temperature,
-        ) as stream:
-            async for event in stream:
-                if event.type == "chunk":
-                    content = event.chunk.choices[0].delta.content
-                    self.streaming_generator.add_chunk(content)
-        reasoning: NextStepToolStub = (await stream.get_final_completion()).choices[0].message.parsed  # type: ignore
-        # we are not fully sure if it should be in conversation or not. Looks like not necessary data
-        # self.conversation.append({"role": "assistant", "content": reasoning.model_dump_json(exclude={"function"})})
-        self._log_reasoning(reasoning)
-        return reasoning
+        try:
+            async with self.openai_client.chat.completions.stream(
+                model=config.openai.model,
+                response_format=await self._prepare_tools(),
+                messages=await self._prepare_context(),
+                max_tokens=config.openai.max_tokens,
+                temperature=config.openai.temperature,
+            ) as stream:
+                async for event in stream:
+                    if event.type == "chunk":
+                        content = event.chunk.choices[0].delta.content
+                        self.streaming_generator.add_chunk(content)
+            reasoning: NextStepToolStub = (await stream.get_final_completion()).choices[0].message.parsed  # type: ignore
+            # we are not fully sure if it should be in conversation or not. Looks like not necessary data
+            # self.conversation.append({"role": "assistant", "content": reasoning.model_dump_json(exclude={"function"})})
+            self._log_reasoning(reasoning)
+            return reasoning
+        except Exception as e:
+            if "length limit was reached" in str(e).lower():
+                logger.warning(f"⚠️ Token limit reached, retrying with reduced context. Error: {str(e)}")
+                # Try to reduce context and retry
+                return await self._reasoning_phase_with_reduced_context()
+            else:
+                raise e
+
+    async def _reasoning_phase_with_reduced_context(self) -> NextStepToolStub:
+        """Fallback method with reduced context when token limit is reached."""
+        logger.info("🔄 Retrying with reduced context and increased token limit")
+        
+        # Reduce conversation history to last 3 messages
+        original_conversation = self.conversation.copy()
+        if len(self.conversation) > 3:
+            self.conversation = self.conversation[-3:]
+            logger.info(f"📝 Reduced conversation from {len(original_conversation)} to {len(self.conversation)} messages")
+        
+        try:
+            async with self.openai_client.chat.completions.stream(
+                model=config.openai.model,
+                response_format=await self._prepare_tools(),
+                messages=await self._prepare_context(),
+                max_tokens=config.openai.max_tokens * 2,  # Double the token limit
+                temperature=config.openai.temperature,
+            ) as stream:
+                async for event in stream:
+                    if event.type == "chunk":
+                        content = event.chunk.choices[0].delta.content
+                        self.streaming_generator.add_chunk(content)
+            reasoning: NextStepToolStub = (await stream.get_final_completion()).choices[0].message.parsed  # type: ignore
+            self._log_reasoning(reasoning)
+            return reasoning
+        except Exception as e:
+            # Restore original conversation if retry fails
+            self.conversation = original_conversation
+            logger.error(f"❌ Retry with reduced context also failed: {str(e)}")
+            raise e
 
     async def _select_action_phase(self, reasoning: NextStepToolStub) -> BaseTool:
         tool = reasoning.function
         if not isinstance(tool, BaseTool):
             raise ValueError("Selected tool is not a valid BaseTool instance")
+        
+        # Log tool selection for debugging
+        logger.info(f"🔧 Selected tool: {tool.tool_name} (iteration {self._context.iteration})")
+        
         self.conversation.append(
             {
                 "role": "assistant",

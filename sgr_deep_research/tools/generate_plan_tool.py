@@ -13,9 +13,12 @@ if TYPE_CHECKING:
 
 @tool
 class GeneratePlanTool(BaseTool):
-    """Generate research plan.
+    """PLAN GENERATION TOOL - Create initial research strategy.
 
-    Useful to split complex request into manageable steps.
+    Use this tool ONLY ONCE at the beginning to create a research plan.
+    After the plan is created, use WebSearchTool to gather actual data.
+    
+    This tool should NOT be used repeatedly - it only creates the initial strategy.
     """
 
     reasoning: str = Field(description="Justification for research approach")

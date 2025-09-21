@@ -22,13 +22,18 @@ config = get_config()
 
 @tool
 class WebSearchTool(BaseTool):
-    """Gather information.
+    """WEB SEARCH TOOL - Search the internet for information.
 
+    Use this tool when you need to find current information, data, or facts from the web.
+    
+    Guidelines:
     - Use SPECIFIC terms and context in search queries
     - For acronyms like "SGR", add context: "SGR Schema-Guided Reasoning"
     - Use quotes for exact phrases: "Structured Output OpenAI"
     - SEARCH QUERIES in SAME LANGUAGE as user request
     - scrape_content=True for deeper analysis (fetches full page content)
+    
+    This is the PRIMARY tool for gathering external information.
     """
 
     reasoning: str = Field(description="Why this search is needed and what to expect")

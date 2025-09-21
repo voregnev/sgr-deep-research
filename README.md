@@ -299,13 +299,15 @@ ______________________________________________________________________
 
 The following diagram shows the complete SGR agent workflow with interruption and clarification support:
 
+> **Note:** If the Mermaid diagram doesn't render in your viewer, you can view it online at [Mermaid Live Editor](https://mermaid.live/) by copying the code below.
+
 ```mermaid
 sequenceDiagram
     participant Client
-    participant API as FastAPI Server
-    participant Agent as SGR Agent
-    participant LLM as LLM
-    participant Tools as Research Tools
+    participant API as "FastAPI Server"
+    participant Agent as "SGR Agent"
+    participant LLM as "LLM"
+    participant Tools as "Research Tools"
 
     Note over Client, Tools: SGR Deep Research - Agent Workflow
 
@@ -373,6 +375,34 @@ sequenceDiagram
     API-->>Client: Close SSE stream
 
     Note over Client, Tools: Agent remains accessible<br/>via agent_id for further clarifications
+```
+
+#### Alternative Text Representation
+
+```
+Client → FastAPI Server → SGR Agent → LLM
+   ↑                           ↓
+   └─── Research Tools ←────────┘
+
+Workflow Steps:
+1. Client sends POST /v1/chat/completions
+2. API creates new SGR Agent with unique ID
+3. Agent initializes context and conversation history
+4. SGR Reasoning Loop (max 6 steps):
+   a. Agent prepares tools based on context limits
+   b. Agent sends Structured Output Request to LLM
+   c. LLM streams chunks back to API → Client
+   d. LLM returns parsed NextStep result to Agent
+   e. Agent executes appropriate tool:
+      - Clarification: Ask clarifying questions
+      - GeneratePlan: Create research plan
+      - WebSearch: Search using Tavily API
+      - AdaptPlan: Modify research plan
+      - CreateReport: Generate final report
+      - ReportCompletion: Mark task as complete
+   f. Agent adds tool result to conversation history
+   g. API streams tool execution result to Client
+5. Agent finishes streaming and closes SSE stream
 ```
 
 ### Schema-Guided Reasoning Capabilities:

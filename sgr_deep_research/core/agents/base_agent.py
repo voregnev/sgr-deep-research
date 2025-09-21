@@ -16,6 +16,9 @@ from sgr_deep_research.core.prompts import PromptLoader
 from sgr_deep_research.core.stream import OpenAIStreamingGenerator
 from sgr_deep_research.core.tools_registry import ToolsRegistry
 from sgr_deep_research.settings import get_config
+from sgr_deep_research.tools.agent_completion_tool import AgentCompletionTool
+from sgr_deep_research.tools.clarification_tool import ClarificationTool
+from sgr_deep_research.tools.create_report_tool import CreateReportTool
 
 logging.basicConfig(
     level=logging.INFO,
@@ -174,13 +177,20 @@ class BaseAgent:
                 action_tool = await self._select_action_phase(reasoning)
                 action_result = await self._action_phase(action_tool)
 
-                if isinstance(action_tool, BaseTool):
+                # Check if this is a clarification tool that requires user input
+                if isinstance(action_tool, ClarificationTool):
                     logger.info("\n⏸️  Research paused - please answer questions")
                     logger.info(action_result)
                     self._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
                     self._context.clarification_received.clear()
                     await self._context.clarification_received.wait()
                     continue
+                
+                # Check if this is a completion tool (report created or task completed)
+                if isinstance(action_tool, (AgentCompletionTool, CreateReportTool)):
+                    logger.info("✅ Research completed successfully")
+                    self._context.state = AgentStatesEnum.COMPLETED
+                    break
 
         except Exception as e:
             logger.error(f"❌ Agent execution error: {str(e)}")
